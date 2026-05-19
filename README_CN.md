@@ -15,6 +15,8 @@
   <a href="https://github.com/OpenSenseNova/SenseNova6.7"><img src="https://img.shields.io/badge/SenseNova-6.7-cf222e?style=flat-square&logo=github&logoColor=white" alt="SenseNova 6.7"></a>
 </p>
 
+> **上游**：本仓库技能包与 [OpenSenseNova/SenseNova-Skills](https://github.com/OpenSenseNova/SenseNova-Skills) 同源；本维护版本新增 **SenseNova Skills Studio** 本地控制面板，说明见 [UPSTREAM.md](UPSTREAM.md) 与 [README_CN_STUDIO.md](README_CN_STUDIO.md)。
+
 SenseNova 系列模型可直接接入 [OpenClaw](https://openclaw.ai/)、[hermes-agent](https://github.com/NousResearch/hermes-agent) 等智能体；本仓库的 skills 则把这些模型扩展为可直接落地的端到端办公能力。
 
 本项目每个技能位于独立目录中，通过 `SKILL.md` 声明触发条件、能力边界和执行方式，遵循 [Agent Skills](https://agentskills.io/) 规范。
@@ -35,6 +37,20 @@ SenseNova 系列模型可直接接入 [OpenClaw](https://openclaw.ai/)、[hermes
 - **规模化验证**：1500 万个人用户、数千家企业用户的共同选择。
 
 > 👉 立即体验：[xiaohuanxiong.com](https://office.xiaohuanxiong.com/home)
+
+## 🖥️ SenseNova Skills Studio（本地控制面板）
+
+若希望在**本机浏览器**中配置 API、运行 sn-\* 技能（文生图 / 信息图 / Excel 探查 / PPT 分步等），无需先搭建 OpenClaw / Cursor，可使用仓库自带的 **Studio** 适配工具：
+
+1. 在 [控制台创建 API Key](https://platform.sensenova.cn/console/keys)，写入仓库根目录 `.env`（见 [`.env.example`](.env.example)）。  
+2. 安装并启动：详见 **[`README_CN_STUDIO.md`](README_CN_STUDIO.md)**。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install_studio.ps1
+python -m sn_studio
+```
+
+浏览器打开 **http://127.0.0.1:7860**。Studio 通过子进程调用 `skills/` 下既有脚本，**不修改** SKILL 逻辑；完整多轮编排仍建议在 Agent 中使用对应 `SKILL.md`。
 
 ## 如何使用
 

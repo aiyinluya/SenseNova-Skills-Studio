@@ -27,7 +27,10 @@ def prepare_env() -> None:
     # ------------------------------------------------------------
     # In reverse order of priority, the latter overrides the former:
     # 3 -- do nothing; overridden by other env files
-    # 2 --
+    # 2 -- repo / workspace .env (skills/ is one level below repo root)
+    repo_env = SKILLS_DIR.parent / ".env"
+    if repo_env.is_file():
+        load_dotenv(repo_env, override=False)
     load_dotenv(override=True)
     # 1 --
     if "OPENCLAW_SHELL" in os.environ:
@@ -67,14 +70,19 @@ class Field:
         if not self.env_names:
             return None
         for n in self.env_names:
-            if n in os.environ:
-                raw = os.environ[n]
-                if target_type is int:
-                    return int(raw)
-                if target_type is float:
-                    return float(raw)
-                # For other types (Literal, etc.), return raw string
-                return raw
+            if n not in os.environ:
+                continue
+            raw = os.environ[n]
+            # Empty placeholders in .env (e.g. SN_IMAGE_GEN_API_KEY=) must not
+            # block fallback to SN_API_KEY or other later env names.
+            if isinstance(raw, str) and not raw.strip():
+                continue
+            if target_type is int:
+                return int(raw)
+            if target_type is float:
+                return float(raw)
+            # For other types (Literal, etc.), return raw string
+            return raw
         return None
 
 

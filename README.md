@@ -35,6 +35,17 @@ Raccoon now ships a full upgrade across product capability and client experience
 
 > 👉 Try it: [xiaohuanxiong.com](https://office.xiaohuanxiong.com/home)
 
+## SenseNova Skills Studio (local control panel)
+
+Run sn-\* skills from a **local Gradio UI** without setting up OpenClaw/Cursor first: configure your [API Key](https://platform.sensenova.cn/console/keys) in `.env`, then see **[`README_CN_STUDIO.md`](README_CN_STUDIO.md)** (Chinese, primary) for install and usage.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install_studio.ps1
+python -m sn_studio
+```
+
+Open **http://127.0.0.1:7860**. Studio invokes existing scripts under `skills/` via subprocess; full multi-step agent workflows remain best in Cursor/OpenClaw with `SKILL.md`.
+
 ## How to Use
 
 These skills are designed to run inside an [Agent Skills](https://agentskills.io/)-compatible agent.

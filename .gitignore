@@ -2,7 +2,21 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
 
 # Worktrees (managed by `git worktree`)
 .worktrees/
@@ -10,3 +24,37 @@ tmp/
 
 # Node
 node_modules/
+
+# Cursor 项目级技能联接（由 setup-cursor-skills.ps1 生成）
+.cursor/skills/
+../.cursor/skills/
+
+# 本地密钥与本地配置
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Studio / 技能运行产物（仅本机，勿提交）
+outputs/*
+!outputs/.gitkeep
+!outputs/README.md
+ppt_decks/
+research/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+*.log
+
+# Gradio 临时缓存
+.gradio/
+flagged/
+
+# 推广文待补截图（可选：提交前删除此行以纳入版本库）
+# docs/promo/screenshot-*.png

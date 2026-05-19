@@ -28,9 +28,45 @@ SKILLS_DIR = SCRIPT_DIR.parents[1]
 
 BASE_SKILL_DIR = SKILLS_DIR / "sn-image-base"
 
+_OK = "✅"
+_FAIL = "❌"
+_WARN = "⚠️"
+
+
+def _configure_stdio() -> None:
+    """Force UTF-8 on Windows consoles (default GBK breaks emoji markers)."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError, AttributeError):
+                pass
+
+
+def _supports_unicode_markers() -> bool:
+    for stream in (sys.stdout, sys.stderr):
+        encoding = getattr(stream, "encoding", None) or ""
+        try:
+            f"{_OK}{_FAIL}{_WARN}".encode(encoding or "utf-8")
+        except (LookupError, UnicodeEncodeError):
+            return False
+    return True
+
+
+def _markers() -> tuple[str, str, str]:
+    if _supports_unicode_markers():
+        return _OK, _FAIL, _WARN
+    return "[OK]", "[FAIL]", "[WARN]"
+
+
+def _say(text: str) -> None:
+    print(text, flush=True)
+
 
 def check_installation(verbose: bool) -> bool:
-    print("[1/3] Checking sn-image-base installation...")
+    ok_mark, fail_mark, _ = _markers()
+    _say("[1/3] Checking sn-image-base installation...")
     root = SKILLS_DIR
     base_skill = BASE_SKILL_DIR
     required = [
@@ -40,47 +76,48 @@ def check_installation(verbose: bool) -> bool:
     ]
     ok = True
     if not base_skill.exists():
-        print("  ❌ sn-image-base directory not found")
-        print(f"  Expected location: {base_skill}")
+        _say(f"  {fail_mark} sn-image-base directory not found")
+        _say(f"  Expected location: {base_skill}")
         return False
     if verbose:
-        print(f"  ✅ sn-image-base directory found: {base_skill}")
+        _say(f"  {ok_mark} sn-image-base directory found: {base_skill}")
     for f in required:
         if f.exists():
             if verbose:
-                print(f"  ✅ {f.relative_to(root)}")
+                _say(f"  {ok_mark} {f.relative_to(root)}")
         else:
-            print(f"  ❌ Missing: {f.relative_to(root)}")
+            _say(f"  {fail_mark} Missing: {f.relative_to(root)}")
             ok = False
     if ok and not verbose:
-        print("  ✅ Installation looks good")
+        _say(f"  {ok_mark} Installation looks good")
     # Check skills
     for d in root.iterdir():
         if not d.is_dir():
             continue
         if (d / "SKILL.md").exists() and d.name.startswith("sn-"):
-            print(f"  ✅ {d.name} skill found")
+            _say(f"  {ok_mark} {d.name} skill found")
     return ok
 
 
 def check_dependencies(verbose: bool) -> bool:
     root = SKILLS_DIR
-    print("[2/3] Checking Python dependencies...")
+    ok_mark, fail_mark, _ = _markers()
+    _say("[2/3] Checking Python dependencies...")
     ok = True
 
     # Python version
     major, minor = sys.version_info[:2]
     if (major, minor) >= (3, 9):
-        print(f"  ✅ Python {major}.{minor}.{sys.version_info[2]}")
+        _say(f"  {ok_mark} Python {major}.{minor}.{sys.version_info[2]}")
     else:
-        print(f"  ❌ Python {major}.{minor} is too old (need >= 3.9)")
+        _say(f"  {fail_mark} Python {major}.{minor} is too old (need >= 3.9)")
         ok = False
 
     # Packages from requirements.txt
     req_file = BASE_SKILL_DIR / "requirements.txt"
     if not req_file.exists():
         # This should never happen, check_installation should have failed
-        print(f"  ❌ requirements.txt not found: {req_file.relative_to(root)}")
+        _say(f"  {fail_mark} requirements.txt not found: {req_file.relative_to(root)}")
         ok = False
         return ok
 
@@ -103,16 +140,16 @@ def check_dependencies(verbose: bool) -> bool:
         found = importlib.util.find_spec(import_name) is not None
         if found:
             if verbose:
-                print(f"  ✅ {pkg_name}")
+                _say(f"  {ok_mark} {pkg_name}")
         else:
             missing.append(pkg_name)
 
     if missing:
-        print(f"  ❌ Missing packages: {', '.join(missing)}")
-        print("  Run: python -m pip install -r skills/sn-image-base/requirements.txt")
+        _say(f"  {fail_mark} Missing packages: {', '.join(missing)}")
+        _say("  Run: python -m pip install -r skills/sn-image-base/requirements.txt")
         ok = False
     elif not verbose:
-        print("  ✅ All required packages installed")
+        _say(f"  {ok_mark} All required packages installed")
 
     return ok
 
@@ -135,56 +172,79 @@ def _load_configs(root: Path):
 
 
 def check_env_vars(root: Path, _verbose: bool) -> bool:
-    print("[3/3] Checking environment variables...")
+    ok_mark, fail_mark, warn_mark = _markers()
+    _say("[3/3] Checking environment variables...")
 
     configs = _load_configs(root)
     if configs is None:
-        print("  ⚠️ Cannot import Configs from sn-image-base, skipping env check")
+        _say(f"  {warn_mark} Cannot import Configs from sn-image-base, skipping env check")
         return True
 
     is_ok = True
     errors, warnings = configs.validate_configs()
     if errors:
         is_ok = False
-        print("  ❌ Environment check failed! Configuration errors:")
+        _say(f"  {fail_mark} Environment check failed! Configuration errors:")
         for field, msg in errors:
-            print(f"    ❌ {field}: {msg}")
+            _say(f"    {fail_mark} {field}: {msg}")
     elif warnings:
-        print("  ✅ Environment check passed! Although with some warnings:")
+        _say(f"  {ok_mark} Environment check passed! Although with some warnings:")
         for field, msg in warnings:
-            print(f"    ⚠️ {field}: {msg}")
+            _say(f"    {warn_mark} {field}: {msg}")
     else:
-        print("  ✅ Environment check passed!")
+        _say(f"  {ok_mark} Environment check passed!")
     inspect_configs(_verbose)
     return is_ok
 
 
 def inspect_configs(_verbose: bool):
+    _, fail_mark, _ = _markers()
     global_configs = _load_configs(SKILLS_DIR)
     if global_configs is None:
-        print(
-            "❌ Cannot import Configs from sn-image-base, skipping config inspection",
-            file=sys.stderr,
+        _say(
+            f"{fail_mark} Cannot import Configs from sn-image-base, skipping config inspection",
         )
         return
 
-    print("Resolved configs:")
+    _say("Resolved configs:")
     if hasattr(global_configs, "to_string"):
-        print(indent(global_configs.to_string(), "  * "))
+        _say(indent(global_configs.to_string(), "  * "))
     else:
-        print(indent(str(global_configs), "  * "))
+        _say(indent(str(global_configs), "  * "))
 
 
-def main():
+def _load_env_file(env_path: Path | None) -> None:
+    if env_path is None:
+        return
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    if env_path.is_file():
+        load_dotenv(env_path, override=True)
+
+
+def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="SenseNova-Skills environment diagnostic")
     parser.add_argument("--verbose", action="store_true", help="Show detailed output")
+    parser.add_argument(
+        "--env-path",
+        type=Path,
+        default=None,
+        help="Path to .env (default: repo root .env next to skills/)",
+    )
     args = parser.parse_args()
 
-    print("=== SenseNova-Skills Environment Check ===\n")
+    env_path = args.env_path or (SKILLS_DIR.parent / ".env")
+    _load_env_file(env_path)
+
+    ok_mark, fail_mark, _ = _markers()
+    _say("=== SenseNova-Skills Environment Check ===\n")
 
     root = SKILLS_DIR
     if args.verbose:
-        print(f"Skills root directory: {root}\n")
+        _say(f"Skills root directory: {root}\n")
 
     results = [
         check_installation(args.verbose),
@@ -192,15 +252,22 @@ def main():
     ]
     results.append(check_env_vars(root, args.verbose))
 
-    print("\n=== Summary ===")
+    _say("\n=== Summary ===")
     if all(results):
-        print("  ✅ Environment is properly configured")
-        sys.exit(0)
-    else:
-        print("  ❌ Environment check failed")
-        print("Please fix the errors above before using SenseNova-Skills.")
-        sys.exit(1)
+        _say(f"  {ok_mark} Environment is properly configured")
+        return 0
+    _say(f"  {fail_mark} Environment check failed")
+    _say("Please fix the errors above before using SenseNova-Skills.")
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        raise
+    except Exception as exc:  # pragma: no cover - guard for Studio / CI callers
+        _configure_stdio()
+        _, fail_mark, _ = _markers()
+        _say(f"{fail_mark} Environment check crashed: {exc}")
+        raise SystemExit(2) from exc
